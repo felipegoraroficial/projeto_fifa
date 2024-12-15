@@ -1,6 +1,9 @@
 {
-	"name": "Notebook 1",
+	"name": "clubs",
 	"properties": {
+		"folder": {
+			"name": "inbound"
+		},
 		"nbformat": 4,
 		"nbformat_minor": 2,
 		"sessionProperties": {
@@ -13,7 +16,7 @@
 				"spark.dynamicAllocation.enabled": "false",
 				"spark.dynamicAllocation.minExecutors": "2",
 				"spark.dynamicAllocation.maxExecutors": "2",
-				"spark.autotune.trackingId": "53174d93-0982-44b1-a35d-59124b3bcc3e"
+				"spark.autotune.trackingId": "6912f6a6-05f5-4068-abe1-a8dc270a8230"
 			}
 		},
 		"metadata": {
@@ -32,7 +35,199 @@
 			{
 				"cell_type": "code",
 				"source": [
-					"print('oi')"
+					"import requests\n",
+					"import json\n",
+					"import datetime\n",
+					"import os"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"blob = 'clubs'\n",
+					"\n",
+					"api_key = \"d9e52390-62a7-46e1-9ac2-3a69df5f3324\"\n",
+					"\n",
+					"headers = {\"X-AUTH-TOKEN\": api_key}\n",
+					"\n",
+					"url = f\"https://futdb.app/api/{blob}?page=1\"\n",
+					"\n",
+					"current_date = datetime.datetime.now().strftime(\"%Y-%m-%d\")\n",
+					"\n",
+					"base_path = \"/home/fececa/airflow/dags/fifa/data/extract\"\n",
+					"\n",
+					"raw_data_path = os.path.join(base_path, \"clube/raw\")\n",
+					"\n",
+					"images_path = os.path.join(base_path, \"clube/imagens\")\n",
+					"\n",
+					"file_name = f\"{blob}_{current_date}.json\"  \n",
+					"\n",
+					"file_path = os.path.join(raw_data_path, file_name)\n",
+					"\n",
+					"os.makedirs(raw_data_path, exist_ok=True)\n",
+					"\n",
+					"os.makedirs(images_path, exist_ok=True)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"%run ./functions/obter-total-de-paginas-api"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"\n",
+					"page_total = obter-total-de-paginas-api(headers,url)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"def extrair_dados_api(headers,page_total,path,blob):\n",
+					"\n",
+					"    page_total\n",
+					"\n",
+					"    if page_total is None:\n",
+					"\n",
+					"        page_total = 1\n",
+					"\n",
+					"    data_list = []  \n",
+					"\n",
+					"    for i in range(1, page_total + 1):\n",
+					"\n",
+					"        url = f\"https://futdb.app/api/{blob}?page={i}\"\n",
+					"        try:\n",
+					"            response = requests.get(url, headers=headers)\n",
+					"\n",
+					"            response.raise_for_status()\n",
+					"\n",
+					"            data = response.json()\n",
+					"\n",
+					"            data_list.append(data)\n",
+					"\n",
+					"\n",
+					"        except requests.exceptions.RequestException as e:\n",
+					"\n",
+					"            print(f\"Erro ao obter dados da página {i}: {e}\")\n",
+					"    \n",
+					"    if data_list:\n",
+					"        with open(path, 'w') as file:\n",
+					"            json.dump(data_list, file)\n",
+					"        print(f\"Lista de {blob} carregados com o nome: {file_name} no diretório: {raw_data_path}\")\n",
+					"    else:\n",
+					"        print(f\"Nenhum dado foi carregado para {blob}. O arquivo JSON não foi salvo.\")\n",
+					"\n",
+					"    return data_list\n",
+					"data_list = extrair_dados_api(headers,page_total,file_path,blob)"
+				],
+				"execution_count": null
+			},
+			{
+				"cell_type": "code",
+				"metadata": {
+					"jupyter": {
+						"source_hidden": false,
+						"outputs_hidden": false
+					},
+					"nteract": {
+						"transient": {
+							"deleting": false
+						}
+					}
+				},
+				"source": [
+					"    def imagem_data(headers,data_list,images_path,blob):\n",
+					"\n",
+					"        if data_list is None:\n",
+					"\n",
+					"            print(f\"Nenhuma lista de {blob} encontrada.\")\n",
+					"\n",
+					"            return\n",
+					"\n",
+					"        data_imagens = []\n",
+					"\n",
+					"        for blob_item in data_list:\n",
+					"\n",
+					"            items = blob_item['items']\n",
+					"\n",
+					"            for blob_info in items:\n",
+					"\n",
+					"                data_id = blob_info['id']\n",
+					"\n",
+					"                column_name = blob_info['name']\n",
+					"                \n",
+					"                url_imagem = f\"https://futdb.app/api/{blob}/{data_id}/image\"\n",
+					"\n",
+					"                response = requests.get(url_imagem, headers=headers)\n",
+					"\n",
+					"                if response.status_code == 200:\n",
+					"\n",
+					"                    image_path = os.path.join(images_path, f\"{data_id}.jpg\")  \n",
+					"\n",
+					"                    with open(image_path, 'wb') as img_file:\n",
+					"                        img_file.write(response.content) \n",
+					"\n",
+					"                    data_imagens.append({'ID {blob}': data_id, 'Nome {blob}': column_name, 'Caminho do Arquivo': image_path})\n",
+					"                    \n",
+					"                    print(f\"Imagem de {column_name} salva no diretório '{image_path}'\")  \n",
+					"                \n",
+					"                else:\n",
+					"                    \n",
+					"                    print(f\"Erro ao acessar a API para {column_name}: {response.status_code}\")  \n",
+					"\n",
+					"\n",
+					"        return data_imagens\n",
+					"    data_imagens = imagem_data(headers,data_list,images_path,blob)"
 				],
 				"execution_count": null
 			}
